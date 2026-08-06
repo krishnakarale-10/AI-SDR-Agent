@@ -1,0 +1,51 @@
+{
+  "name": "ai-sdr-backend",
+  "version": "1.0.0",
+  "description": "AI SDR (Sales Development Representative) Backend Engine",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "server": "node src/server.js",
+    "server:dev": "node --watch src/server.js",
+    "worker": "node src/worker.js",
+    "worker:dev": "node --watch src/worker.js",
+    "db:generate": "npx prisma generate",
+    "db:push": "npx prisma db push",
+    "db:migrate": "npx prisma migrate dev",
+    "db:studio": "npx prisma studio"
+  },
+  "keywords": [
+    "ai",
+    "sdr",
+    "sales-automation",
+    "express",
+    "bullmq",
+    "langchain",
+    "prisma"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
+    "bcrypt": "^6.0.0",
+    "bullmq": "^6.0.8",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.6.2",
+    "helmet": "^8.3.0",
+    "ioredis": "^6.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.11.0",
+    "pg": "^8.16.0",
+    "resend": "^6.18.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "prisma": "^7.9.1"
+  }
+}
