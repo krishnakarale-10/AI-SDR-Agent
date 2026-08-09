@@ -25,7 +25,7 @@ export const generateAccessToken=(userID)=>{
 // 1. security
 // 3. if the database is leaked we can still use the refresh token to generate new access token
 
-export const generateRefreshToken=(userID)=>{
+export const generateRefreshToken=()=>{
     return crypto.randomBytes(32).toString("hex");
 }
 
@@ -34,12 +34,12 @@ export const generateRefreshToken=(userID)=>{
     return crypto.createHash("sha256").update(refreshToken).digest("hex");
 };  
 
- // here we just generated the expiry time of the refresh token
+// here we just generated the expiry time of the refresh token
 export const getRefreshTokenExpiryTime=()=>{
     const expiresAt = new Date();
 
   expiresAt.setDate(
-    expiresAt.getDate() + REFRESH_TOKEN_EXPIRES_DAYS
+    expiresAt.getDate() + Number(process.env.REFRESH_TOKEN_EXPIRES_DAYS)
   );
 
   return expiresAt;
