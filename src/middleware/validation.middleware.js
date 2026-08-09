@@ -1,6 +1,8 @@
-import { ApiError } from "@/utils/apiErrors.js";
+import { ApiError } from "../utils/apiErrors.js";
 
 export const validation=(schema)=>(req,res,next)=>{
+   //console.log("BODY:", req.body);  for testing if you want to look at how the imput is coming
+   
     const result = schema.safeParse({
         body:req.body,
         query:req.query,
