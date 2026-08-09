@@ -1,0 +1,416 @@
+erDiagram
+
+
+
+%% ==========================
+
+%% AUTHENTICATION & USERS
+
+%% ==========================
+
+
+
+USER ||--o{ REFRESH_TOKEN : has
+
+USER ||--o{ PASSWORD_RESET : requests
+
+USER ||--o{ EMAIL_VERIFICATION : verifies
+
+USER ||--o{ CAMPAIGN : owns
+
+USER ||--o{ NOTIFICATION : receives
+
+
+
+USER {
+
+    String id PK
+
+    String name
+
+    String email "UNIQUE"
+
+    String password_hash
+
+    Boolean email_verified
+
+    Int daily_send_limit
+
+    DateTime created_at
+
+    DateTime updated_at
+
+    DateTime deleted_at
+
+}
+
+
+
+REFRESH_TOKEN {
+
+    String id PK
+
+    String user_id FK
+
+    String token_hash "UNIQUE"
+
+    DateTime expires_at
+
+    Boolean revoked
+
+    DateTime created_at
+
+}
+
+
+
+PASSWORD_RESET {
+
+    String id PK
+
+    String user_id FK
+
+    String token "UNIQUE"
+
+    DateTime expires_at
+
+    Boolean used
+
+}
+
+
+
+EMAIL_VERIFICATION {
+
+    String id PK
+
+    String user_id FK
+
+    String token "UNIQUE"
+
+    DateTime expires_at
+
+    Boolean verified
+
+}
+
+
+
+%% ==========================
+
+%% CAMPAIGNS & ANALYTICS
+
+%% ==========================
+
+
+
+CAMPAIGN ||--o{ LEAD : contains
+
+CAMPAIGN ||--|| CAMPAIGN_ANALYTICS : tracks
+
+
+
+CAMPAIGN {
+
+    String id PK
+
+    String user_id FK
+
+    String name
+
+    Text product_description
+
+    Json value_props
+
+    Json search_criteria
+
+    String tone
+
+    Enum status
+
+    DateTime created_at
+
+    DateTime updated_at
+
+    DateTime deleted_at
+
+}
+
+
+
+CAMPAIGN_ANALYTICS {
+
+    String id PK
+
+    String campaign_id FK "UNIQUE"
+
+    Int total_leads
+
+    Int emails_sent
+
+    Int replies
+
+    Int interested
+
+    Int bounced
+
+    DateTime updated_at
+
+}
+
+
+
+%% ==========================
+
+%% LEADS & RESEARCH
+
+%% ==========================
+
+
+
+LEAD ||--o{ LEAD_RESEARCH : has
+
+LEAD ||--o{ EMAIL : receives
+
+LEAD ||--o{ FOLLOW_UP : schedules
+
+LEAD ||--o{ AI_JOB : processes
+
+
+
+LEAD {
+
+    String id PK
+
+    String campaign_id FK
+
+    String full_name
+
+    String email
+
+    String company
+
+    String job_title
+
+    String linkedin
+
+    Enum source
+
+    Enum status
+
+    Int fit_score
+
+    DateTime created_at
+
+    DateTime updated_at
+
+}
+
+
+
+LEAD_RESEARCH {
+
+    String id PK
+
+    String lead_id FK
+
+    String ai_model
+
+    String prompt_version
+
+    Json research
+
+    DateTime created_at
+
+}
+
+
+
+%% ==========================
+
+%% EMAIL SYSTEM
+
+%% ==========================
+
+
+
+EMAIL ||--o{ REPLY : has
+
+EMAIL ||--o{ FOLLOW_UP : triggers
+
+
+
+EMAIL {
+
+    String id PK
+
+    String lead_id FK
+
+    Int step
+
+    String subject
+
+    Text body
+
+    Json personalization
+
+    Enum approval_status
+
+    Enum send_status
+
+    String provider
+
+    String provider_message_id
+
+    String ai_model
+
+    String prompt_version
+
+    DateTime approved_at
+
+    DateTime sent_at
+
+    DateTime created_at
+
+    DateTime updated_at
+
+}
+
+
+
+REPLY {
+
+    String id PK
+
+    String email_id FK
+
+    Text raw_email
+
+    Enum intent
+
+    Text ai_summary
+
+    Boolean read
+
+    DateTime created_at
+
+}
+
+
+
+%% ==========================
+
+%% INFRASTRUCTURE & JOBS
+
+%% ==========================
+
+
+
+AI_JOB {
+
+    String id PK
+
+    String lead_id FK
+
+    Enum type
+
+    Enum status
+
+    Int attempts
+
+    Text error
+
+    DateTime started_at
+
+    DateTime completed_at
+
+}
+
+
+
+FOLLOW_UP {
+
+    String id PK
+
+    String lead_id FK
+
+    String email_id FK
+
+    DateTime scheduled_for
+
+    Enum status
+
+    String bullmq_job_id
+
+}
+
+
+
+%% ==========================
+
+%% WEBHOOK DELIVERY (NEW)
+
+%% ==========================
+
+%% Prevents duplicate processing when a provider (Resend, Apollo, etc.)
+
+%% retries a webhook delivery — very common, not an edge case.
+
+%% Every incoming webhook is checked against provider_event_id BEFORE
+
+%% any REPLY/NOTIFICATION/status-update side effects run.
+
+
+
+WEBHOOK_EVENT {
+
+    String id PK
+
+    String provider "resend / apollo / etc"
+
+    String event_type "reply / bounce / open / etc"
+
+    String provider_event_id "UNIQUE - dedup key"
+
+    Json payload
+
+    DateTime processed_at
+
+    DateTime created_at
+
+}
+
+
+
+%% ==========================
+
+%% UI NOTIFICATIONS
+
+%% ==========================
+
+
+
+USER ||--o{ NOTIFICATION : receives
+
+LEAD ||--o{ NOTIFICATION : triggers
+
+
+
+NOTIFICATION {
+
+    String id PK
+
+    String user_id FK
+
+    String lead_id FK
+
+    String type
+
+    String message
+
+    Boolean read
+
+    DateTime created_at
+
+} 
+

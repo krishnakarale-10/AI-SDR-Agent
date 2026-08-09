@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
+import  authRoutes from "./modules/auth/auth.routes.js"
 import 'dotenv/config';
 
 // You will import your route files here once we build them
@@ -34,7 +35,7 @@ app.get('/health', (req, res) => {
 });
 
 // We will mount your actual feature routes here later
-// app.use('/api/auth', authRoutes);
+   app.use('/api/auth', authRoutes);
 // app.use('/api/campaigns', campaignRoutes);
 
 // If a user tries to hit a URL that doesn't exist (e.g., /api/banana)
