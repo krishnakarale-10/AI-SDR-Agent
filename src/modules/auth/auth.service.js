@@ -1,7 +1,7 @@
 import prisma from "../../config/prisma.js";
 import {ApiError} from "../../utils/apiErrors.js";
 import {hashPassword,verifyPassword} from "../../utils/password.utils.js";
-import {generateAccessToken,generateRefreshToken,getRefreshTokenExpiryTime} from "../../utils/auth.utils.js"
+import {generateAccessToken,generateRefreshToken,getRefreshTokenExpiryTime, hashRefreshToken} from "../../utils/auth.utils.js"
 import "dotenv/config";
 
 
@@ -57,3 +57,49 @@ export const registerUser= async(name,email,password)=>{
     }
 };
 
+export const loginUser= async(email,password)=>{
+    try {
+        //we first noramilzed the email
+        const normalizedEmail= email?.trim()?.toLowerCase();
+        //we find the user first  and check if it exist or not
+        const user = await prisma.user.findUnique({
+            where:{email:normalizedEmail},
+        });
+        if(!user){
+            throw new ApiError(404,"user not found");
+        }
+        //if user exist lets check this password useing verifypassword method which we have created in password.utility
+        const isPasswordValid= await verifyPassword(password,user.password_hash);
+        if(!isPasswordValid){
+            throw new ApiError(401,"password is not correct");
+        }
+        // if we user password  is correct means user is authenticated and we hand him a accessToken 
+        const accessToken = generateAccessToken(user.id);
+        //now lets genrate a rawRefreshToken 
+        const refreshToken = generateRefreshToken();
+        //we can not store the raw refresh token we have to hash it 
+        const refreshTokenHash = hashRefreshToken(refreshToken);
+        // we have created new  refershToken now we have to store it 
+        
+        await prisma.refreshToken.create({
+            data:{
+                user_id:user.id,
+                token_hash:refreshTokenHash,
+                expires_at:getRefreshTokenExpiryTime()
+            }
+        });
+
+        return {
+            user:{
+            id:user.id,
+            name:user.name,
+            email:user.email
+        },
+        accessToken,
+        refreshToken
+    }
+    
+    } catch (error) {
+        throw error;
+    }
+}

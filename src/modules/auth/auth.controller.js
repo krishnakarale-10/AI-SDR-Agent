@@ -1,5 +1,5 @@
 import asyncHandler from "my-async-handler";
-import {registerUser} from "../auth/auth.service.js"
+import {registerUser,loginUser} from "../auth/auth.service.js"
 import { ApiResponse } from "../../utils/apiResponse.js";
 
 const COOKIE_OPTIONS = {
@@ -14,5 +14,15 @@ export const register= asyncHandler(async(req,res)=>{
     const user = await registerUser(name,email,password);
     res.status(201).json(
     new ApiResponse(201, user, 'User registered successfully')
+  );
+});
+
+export const login= asyncHandler(async(req,res)=>{
+    const{email,password}= req.body
+ const {user, accessToken, refresh_token}= await loginUser(email,password);
+ res.cookie('refreshToken', refresh_token, COOKIE_OPTIONS);
+
+  res.status(200).json(
+    new ApiResponse(200, { user, accessToken }, 'Login successful')
   );
 })
