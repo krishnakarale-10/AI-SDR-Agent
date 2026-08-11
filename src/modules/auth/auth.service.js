@@ -6,6 +6,7 @@ import "dotenv/config";
 
 
 
+
 // we will make a register service first 
 export const registerUser= async(name,email,password)=>{
     try {
@@ -89,17 +90,95 @@ export const loginUser= async(email,password)=>{
             }
         });
 
+        // Return user details along with access and refresh tokens
         return {
             user:{
-            id:user.id,
-            name:user.name,
-            email:user.email
-        },
-        accessToken,
-        refreshToken
-    }
+                id:user.id,
+                name:user.name,
+                email:user.email
+            },
+            accessToken,
+            refreshToken
+        }
     
     } catch (error) {
         throw error;
     }
-}
+};
+
+export const refreshAccessToken = async (refreshToken) => {
+    try {
+        if (!refreshToken) {
+            throw new ApiError(401, "refresh token is required");
+        }
+
+        const hashedToken = hashRefreshToken(refreshToken);
+        
+        const storedToken = await prisma.refreshToken.findUnique({
+            where: { token_hash: hashedToken }
+        });
+
+        if (!storedToken) {
+            throw new ApiError(401, "invalid token");
+        }
+
+        // Token reuse detection: if a revoked token is attempted to be used, revoke all tokens for this user
+        if (storedToken.revoked) {
+            await prisma.refreshToken.updateMany({
+                where: { user_id: storedToken.user_id },
+                data: { revoked: true }
+            });
+            throw new ApiError(401, "token is revoked");
+        }
+
+        if (new Date(storedToken.expires_at) < new Date()) {
+            throw new ApiError(401, "token has been expired");
+        }
+
+        const newRefreshToken = generateRefreshToken();
+        const newRefreshTokenHash = hashRefreshToken(newRefreshToken);
+        const newAccessToken = generateAccessToken(storedToken.user_id);
+        const newExpiryTime = getRefreshTokenExpiryTime();
+
+        // Atomically revoke current token and issue new token (Rotation)
+        await prisma.$transaction([
+            prisma.refreshToken.update({
+                where: { id: storedToken.id },
+                data: { revoked: true }
+            }),
+            prisma.refreshToken.create({
+                data: {
+                    user_id: storedToken.user_id,
+                    token_hash: newRefreshTokenHash,
+                    expires_at: newExpiryTime
+                }
+            })
+        ]);
+
+        return {
+            newRefreshToken,
+            newAccessToken
+        };
+
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const logoutUser = async (refreshToken) => {
+    try {
+        if (!refreshToken) {
+            return { success: true };
+        }
+
+        const hashedToken = hashRefreshToken(refreshToken);
+        await prisma.refreshToken.updateMany({
+            where: { token_hash: hashedToken },
+            data: { revoked: true }
+        });
+
+        return { success: true };
+    } catch (error) {
+        throw error;
+    }
+};
