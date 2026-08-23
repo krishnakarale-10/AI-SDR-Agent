@@ -42,3 +42,27 @@ export const getRefreshTokenExpiryTime=()=>{
     return expiresAt;
 };
 
+ // email utilites 
+
+ export const generateVerificationToken=()=>{
+    return crypto.randomBytes(32).toString("hex"); 
+ }
+
+ export const genrateResetToken=()=>{
+    return crypto.randomBytes(32).toString("hex"); 
+ }
+ 
+ export const hashVerificationToken=(verificationToken)=>{
+    return crypto.createHash("sha256").update(verificationToken).digest("hex");
+ }
+
+ export const hashResetToken=(resetToken)=>{
+    return crypto.createHash("sha256").update(resetToken).digest("hex");
+ }
+export const getEmailVerificationExpiryTime = () => {
+  return new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+};
+
+export const getPasswordResetExpiryTime = () => {
+  return new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+};

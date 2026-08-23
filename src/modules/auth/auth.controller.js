@@ -1,6 +1,7 @@
 import asyncHandler from "my-async-handler";
-import { registerUser, loginUser, refreshAccessToken, logoutUser } from "../auth/auth.service.js";
+import { registerUser, loginUser, refreshAccessToken, logoutUser, verifyEmail,resendVerification,forgetPassWord,resetPassword } from "../auth/auth.service.js";
 import { ApiResponse } from "../../utils/apiResponse.js";
+
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -52,4 +53,35 @@ export const getMe = asyncHandler(async (req, res) => {
   res.status(200).json(
     new ApiResponse(200, req.user, "User profile retrieved successfully")
   );
-});
+});
+
+export const verifyEmailController = asyncHandler(async(req,res)=>{
+  const {token} = req.body
+  await verifyEmail(token)
+  res.status(200).json(
+    new ApiResponse(200, null, "Email verified successfully")
+  ) 
+});
+
+export const resendVerificationController = asyncHandler(async(req,res)=>{
+  await resendVerification(req.user.id,req.user.email);
+  res.status(200).json(
+    new ApiResponse(200, null, "Verification email resent successfully")
+  ) 
+});
+
+export const forgetPasswordController = asyncHandler(async(req,res)=>{
+  const {email}=req.body;
+  await forgetPassWord(email);
+  res.status(200).json(
+    new ApiResponse(200, null, "Password reset email sent successfully")
+  )
+});
+
+export const resetPasswordController= asyncHandler(async(req,res)=>{
+  const {token,password}= req.body;
+  await resetPassword(token,password)
+  res.status(200).json(
+    new ApiResponse(200,null,"Your password has been successfully changed")
+    )
+})

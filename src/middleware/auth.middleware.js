@@ -23,7 +23,7 @@ export const authenticate = async (req, res, next) => {
     try {
       decode = jwt.verify(
         token,
-        process.env.ACCESS_TOKEN_SECRET || "default_access_token_secret_for_dev"
+        process.env.ACCESS_TOKEN_SECRET
       );
     } catch (jwtError) {
       if (jwtError.name === "TokenExpiredError") {
@@ -57,4 +57,11 @@ export const authenticate = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-};
+};
+
+export const requireVerifiedEmail = (req, res, next) => {
+  if (!req.user?.email_verified) {
+    return next(new ApiError(403, "Email verification required"));
+  }
+  next();
+};
