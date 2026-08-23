@@ -44,7 +44,7 @@
     "my-async-handler": "^1.0.0",
     "nodemon": "^3.1.14",
     "pg": "^8.16.0",
-    "resend": "^6.18.1",
+    "resend": "^6.20.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
