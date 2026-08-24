@@ -7,6 +7,88 @@ datasource db {
 }
 
 // ==========================================
+// 🔐 ENUMS
+// ==========================================
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum LeadSource {
+  MANUAL
+  APOLLO
+  LINKEDIN
+  CSV_IMPORT
+  WEBHOOK
+  OTHER
+}
+
+enum LeadStatus {
+  NEW
+  RESEARCHING
+  RESEARCHED
+  CONTACTED
+  REPLIED
+  INTERESTED
+  NOT_INTERESTED
+  BOUNCED
+  OPTED_OUT
+  UNQUALIFIED
+}
+
+enum EmailApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  AUTO_APPROVED
+}
+
+enum EmailSendStatus {
+  DRAFT
+  QUEUED
+  SENDING
+  SENT
+  FAILED
+  BOUNCED
+}
+
+enum ReplyIntent {
+  INTERESTED
+  NOT_INTERESTED
+  MORE_INFO
+  UNSUBSCRIBE
+  OUT_OF_OFFICE
+  WRONG_PERSON
+  NEUTRAL
+}
+
+enum AiJobType {
+  RESEARCH_LEAD
+  GENERATE_EMAIL
+  CLASSIFY_REPLY
+  SCORE_FIT
+}
+
+enum AiJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum FollowUpStatus {
+  SCHEDULED
+  PENDING
+  SENT
+  CANCELLED
+  FAILED
+}
+
+// ==========================================
 // 🔐 AUTHENTICATION & USERS
 // ==========================================
 
@@ -25,6 +107,8 @@ model User {
   refresh_tokens      RefreshToken[]
   password_resets     PasswordReset[]
   email_verifications EmailVerification[]
+  campaigns           Campaign[]
+  notifications       Notification[]
 
   @@map("users")
 }
@@ -72,4 +156,217 @@ model EmailVerification {
 
   @@index([user_id])
   @@map("email_verifications")
+}
+
+// ==========================================
+// 📊 CAMPAIGNS & ANALYTICS
+// ==========================================
+
+model Campaign {
+  id                  String         @id @default(uuid())
+  user_id             String
+  name                String
+  product_description String         @db.Text
+  value_props         Json
+  search_criteria     Json
+  tone                String
+  status              CampaignStatus @default(DRAFT)
+  created_at          DateTime       @default(now())
+  updated_at          DateTime       @updatedAt
+  deleted_at          DateTime?
+
+  // Relations
+  user      User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  analytics CampaignAnalytics?
+  leads     Lead[]
+
+  @@index([user_id])
+  @@map("campaigns")
+}
+
+model CampaignAnalytics {
+  id          String   @id @default(uuid())
+  campaign_id String   @unique
+  total_leads Int      @default(0)
+  emails_sent Int      @default(0)
+  replies     Int      @default(0)
+  interested  Int      @default(0)
+  bounced     Int      @default(0)
+  updated_at  DateTime @updatedAt
+
+  // Relations
+  campaign Campaign @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+
+  @@map("campaign_analytics")
+}
+
+// ==========================================
+// 🎯 LEADS & RESEARCH
+// ==========================================
+
+model Lead {
+  id          String     @id @default(uuid())
+  campaign_id String
+  full_name   String
+  email       String
+  company     String?
+  job_title   String?
+  linkedin    String?
+  source      LeadSource @default(MANUAL)
+  status      LeadStatus @default(NEW)
+  fit_score   Int?
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @updatedAt
+
+  // Relations
+  campaign      Campaign       @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+  lead_research LeadResearch[]
+  emails        Email[]
+  follow_ups    FollowUp[]
+  ai_jobs       AiJob[]
+  notifications Notification[]
+
+  @@index([campaign_id])
+  @@index([email])
+  @@map("leads")
+}
+
+model LeadResearch {
+  id             String   @id @default(uuid())
+  lead_id        String
+  ai_model       String
+  prompt_version String
+  research       Json
+  created_at     DateTime @default(now())
+
+  // Relations
+  lead Lead @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+
+  @@index([lead_id])
+  @@map("lead_research")
+}
+
+// ==========================================
+// 📧 EMAIL SYSTEM
+// ==========================================
+
+model Email {
+  id                  String              @id @default(uuid())
+  lead_id             String
+  step                Int                 @default(1)
+  subject             String
+  body                String              @db.Text
+  personalization     Json?
+  approval_status     EmailApprovalStatus @default(PENDING)
+  send_status         EmailSendStatus     @default(DRAFT)
+  provider            String?
+  provider_message_id String?
+  ai_model            String?
+  prompt_version      String?
+  approved_at         DateTime?
+  sent_at             DateTime?
+  created_at          DateTime            @default(now())
+  updated_at          DateTime            @updatedAt
+
+  // Relations
+  lead       Lead       @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+  replies    Reply[]
+  follow_ups FollowUp[]
+
+  @@index([lead_id])
+  @@map("emails")
+}
+
+model Reply {
+  id         String       @id @default(uuid())
+  email_id   String
+  raw_email  String       @db.Text
+  intent     ReplyIntent?
+  ai_summary String?      @db.Text
+  read       Boolean      @default(false)
+  created_at DateTime     @default(now())
+
+  // Relations
+  email Email @relation(fields: [email_id], references: [id], onDelete: Cascade)
+
+  @@index([email_id])
+  @@map("replies")
+}
+
+// ==========================================
+// ⚙️ INFRASTRUCTURE & JOBS
+// ==========================================
+
+model AiJob {
+  id           String      @id @default(uuid())
+  lead_id      String
+  type         AiJobType
+  status       AiJobStatus @default(PENDING)
+  attempts     Int         @default(0)
+  error        String?     @db.Text
+  started_at   DateTime?
+  completed_at DateTime?
+  created_at   DateTime    @default(now())
+
+  // Relations
+  lead Lead @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+
+  @@index([lead_id])
+  @@map("ai_jobs")
+}
+
+model FollowUp {
+  id            String         @id @default(uuid())
+  lead_id       String
+  email_id      String?
+  scheduled_for DateTime
+  status        FollowUpStatus @default(PENDING)
+  bullmq_job_id String?
+  created_at    DateTime       @default(now())
+
+  // Relations
+  lead  Lead   @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+  email Email? @relation(fields: [email_id], references: [id], onDelete: SetNull)
+
+  @@index([lead_id])
+  @@index([email_id])
+  @@map("follow_ups")
+}
+
+// ==========================================
+// 🪝 WEBHOOK DELIVERY
+// ==========================================
+
+model WebhookEvent {
+  id                String    @id @default(uuid())
+  provider          String
+  event_type        String
+  provider_event_id String    @unique
+  payload           Json
+  processed_at      DateTime?
+  created_at        DateTime  @default(now())
+
+  @@map("webhook_events")
+}
+
+// ==========================================
+// 🔔 UI NOTIFICATIONS
+// ==========================================
+
+model Notification {
+  id         String   @id @default(uuid())
+  user_id    String
+  lead_id    String?
+  type       String
+  message    String
+  read       Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  // Relations
+  user User  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  lead Lead? @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([lead_id])
+  @@map("notifications")
 }
