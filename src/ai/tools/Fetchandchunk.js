@@ -48,8 +48,9 @@ const chunkText= async(text)=>{
 
 }
 
-const fetchAndChunk =async (url)=>{
-    if(!url){
+const fetchAndChunk = async (url) => {
+    const SCRAPER_BLOCKED_SITES = ["linkedin.com", "youtube.com", "twitter.com", "x.com", "facebook.com", "instagram.com", "glassdoor.com"];
+    if (!url || SCRAPER_BLOCKED_SITES.some((site) => url.includes(site))) {
         return [];
     }
     const content = await fetchCleanContent(url);
