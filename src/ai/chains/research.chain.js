@@ -16,6 +16,9 @@ const MAX_SEARCHES_PER_LEAD = Number(process.env.RESEARCH_MAX_SEARCHES) || 2;
 const AGENT_RECURSION_LIMIT = 15;
 const URLS_TO_FETCH_PER_SEARCH = 3;
 
+// DeepSeek Model for Research via OpenRouter
+const RESEARCH_MODEL = process.env.RESEARCH_MODEL || "deepseek/deepseek-chat";
+
 // System prompt guiding the research agent to gather factual, verifiable data
 const buildSearchAgentInstructions = () => `You are a B2B sales research agent with a web search tool.
 
@@ -58,18 +61,12 @@ const rawSearchTool = new TavilySearch({
   searchDepth: "advanced",
 });
 
-// Primary LLM used by the ReAct search agent
-/* const agentModel = new ChatGoogle({
-  apiKey: process.env.GOOGLE_API_KEY,
-  model: "gemini-3.6-flash",
-  temperature: 0.2,
-}); */
-
+// Primary LLM used by the ReAct search agent (DeepSeek via OpenRouter)
 const agentModel = new ChatOpenRouter({
-  apiKey:process.env.OPENROUTER_API_KEY,
-  model:"nvidia/nemotron-3.5-lightning:free",
-  temperature:0.2
-})
+  apiKey: process.env.OPENROUTER_API_KEY,
+  model: RESEARCH_MODEL,
+  temperature: 0.2,
+});
 
 // Fetches full page content, splits into chunks, and reranks using Cohere
 const buildRankedContext = async (query, tavilyResults) => {
@@ -120,7 +117,7 @@ const createLimitedSearchTool = (discoveredUrls = {}) => {
         () => rawSearchTool.invoke({ query }),
         {
           label: `tavily-search:"${query}"`,
-          timeoutMs: 8000,
+          timeoutMs: 15000,
           retries: 1,
           backoffMs: 500,
           fallback: (err) => ({ results: [], _failed: true, _message: err.message }),
@@ -204,8 +201,8 @@ const searchForFacts = async ({ campaign, lead, discoveredUrls = {} }) => {
   );
 };
 
-// Step 2: Structuring model parses unstructured findings into strict schema
-const structuringModel = new ChatGroq({
+// Step 2: Structuring model parses unstructured findings into strict schema (DeepSeek via OpenRouter)
+const structuringModel = new ChatOpenRouter({
   apiKey: process.env.GROQ_API_KEY,
   model: "openai/gpt-oss-120b",
   temperature: 0.2,
@@ -263,7 +260,7 @@ export default runResearchChain;
  *    - The agent synthesizes all gathered evidence into a factual text summary.
  *
  * 3. STEP 2 — STRUCTURED EXTRACTION (structureFindings):
- *    - Sends the raw findings to structuringModel (Groq withStructuredOutput).
+ *    - Sends the raw findings to structuringModel (DeepSeek via ChatOpenRouter).
  *    - Enforces strict validation matching leadResearchSchema:
  *        - company_facts: Verifiable company milestones, products, hiring
  *        - lead_facts: Individual background, seniority, recent activities
