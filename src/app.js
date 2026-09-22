@@ -3,7 +3,8 @@ import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
-import  authRoutes from "./modules/auth/auth.routes.js"
+import authRoutes from "./modules/auth/auth.routes.js"
+import campaignRoutes from "./modules/campaigns/campaigns.routes.js";
 import 'dotenv/config';
 
 // You will import your route files here once we build them
@@ -35,8 +36,8 @@ app.get('/health', (req, res) => {
 });
 
 // We will mount your actual feature routes here later
-   app.use('/api/auth', authRoutes);
-// app.use('/api/campaigns', campaignRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/campaigns', campaignRoutes);
 
 // If a user tries to hit a URL that doesn't exist (e.g., /api/banana)
 app.use((req, res, next) => {
@@ -52,7 +53,7 @@ app.use((err, req, res, next) => {
 
   // If the error doesn't have a specific status code, default to 500 (Internal Server Error)
   const statusCode = err.statusCode || 500;
-  
+
   res.status(statusCode).json({
     success: false,
     message: err.message || 'Internal Server Error',
